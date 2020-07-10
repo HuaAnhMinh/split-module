@@ -46,6 +46,8 @@ get_a().f;
 
 class Test extends get_x() {
   constructor(props) {
-    
+
   }
 }
+
+get_path().join('a', 'a', 'c');

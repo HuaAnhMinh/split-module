@@ -17,6 +17,8 @@ a.f;
 
 class Test extends x {
   constructor(props) {
-    
+
   }
 }
+
+path.join('a', 'a', 'c');
