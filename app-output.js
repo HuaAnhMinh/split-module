@@ -37,3 +37,15 @@ function get_d() {
 }
 
 const number = 1;
+
+get_d()();
+
+get_d()().g;
+
+get_a().f;
+
+class Test extends get_x() {
+  constructor(props) {
+    
+  }
+}
