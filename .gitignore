@@ -105,3 +105,6 @@ dist
 
 # Environment directory
 environment/
+
+# Idea directory
+.idea/

@@ -31,6 +31,15 @@ const functionLazyReplacementCallExpression = (name='', module='', propCalled=''
 
 // Modules called detection
 
+const getStructureOfModuleRequired = (type='') => {
+  switch (type) {
+    case 'GENERAL_REQUIRE':
+      break;
+    default:
+      return {}
+  }
+};
+
 // const x = require('y');
 const detectModuleCalledGeneral = (source='', j, listPropsCalled=[], structure={}) => {
   return j(source)
@@ -105,7 +114,6 @@ const detectModuleCalledExpression = (source='', j, listPropsCalled=[], structur
 // change to lazy function called
 const changeToLazyFunctionCalled = (source='', j, listPropsCalled=[]) => {
   listPropsCalled.forEach(prop => {
-    const replaceRegEx = new RegExp(`(${prop})[.( {]`);
     console.log(prop);
     source = source.replace(`${prop}.`, `get_${prop}().`);
 
@@ -236,8 +244,13 @@ module.exports = (fileInfo, { jscodeshift: j }, options) => {
   source = changeToLazyFunctionCalled(source, j, listPropsCalled);
 
   if (typeof options.save === 'string') {
+    const base = path.parse(fileInfo.path).base;
     const saveLocation = path.join(__dirname, options.save);
-    fs.writeFileSync(saveLocation, source);
+    const saveFile = path.join(__dirname, options.save, base);
+    if (!fs.existsSync(saveLocation)) {
+      fs.mkdirSync(saveLocation);
+    }
+    fs.writeFileSync(saveFile, source);
   }
 
   return source;
