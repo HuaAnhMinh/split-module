@@ -108,3 +108,7 @@ environment/
 
 # Idea directory
 .idea/
+
+input/
+
+output/
