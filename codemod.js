@@ -257,15 +257,22 @@ module.exports = (fileInfo, { jscodeshift: j }, options) => {
     fs.writeFileSync(saveLocation, source);
   }
   else {
-    const saveLocation = path.join(__dirname, exportedFolder, pathInfo.dir);
-    try {
-      if (!fs.existsSync(saveLocation)) {
-        fs.mkdirSync(saveLocation);
-      }
+    let subFolders = pathInfo.dir.split('\\');
+    if (process.platform !== 'win32') {
+      subFolders = pathInfo.dir.split('/');
     }
-    catch (error) { /** ignore */ }
+    let subPath = path.join(__dirname, exportedFolder);
+    subFolders.forEach(subFolder => {
+      try {
+        subPath = path.join(subPath, subFolder);
+        if (!fs.existsSync(subPath)) {
+          fs.mkdirSync(subPath);
+        }
+      }
+      catch (error) { /** ignored */ }
+    });
 
-    const saveFile = path.join(__dirname, exportedFolder, pathInfo.dir, pathInfo.base);
+    const saveFile = path.join(subPath, pathInfo.base);
     fs.writeFileSync(saveFile, source);
   }
 
