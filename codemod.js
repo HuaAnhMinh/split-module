@@ -114,7 +114,6 @@ const detectModuleCalledExpression = (source='', j, listPropsCalled=[], structur
 // change to lazy function called
 const changeToLazyFunctionCalled = (source='', j, listPropsCalled=[]) => {
   listPropsCalled.forEach(prop => {
-    console.log(prop);
     source = source.replace(`${prop}.`, `get_${prop}().`);
 
     source = j(source)
@@ -243,13 +242,30 @@ module.exports = (fileInfo, { jscodeshift: j }, options) => {
 
   source = changeToLazyFunctionCalled(source, j, listPropsCalled);
 
+  let exportedFolder = 'output';
   if (typeof options.save === 'string') {
-    const base = path.parse(fileInfo.path).base;
-    const saveLocation = path.join(__dirname, options.save);
-    const saveFile = path.join(__dirname, options.save, base);
-    if (!fs.existsSync(saveLocation)) {
-      fs.mkdirSync(saveLocation);
+    exportedFolder = options.save;
+  }
+
+  const pathInfo = path.parse(fileInfo.path);
+  if (!fs.existsSync(exportedFolder)) {
+    fs.mkdirSync(exportedFolder);
+  }
+
+  if (!pathInfo.dir) {
+    const saveLocation = path.join(__dirname, exportedFolder, `${pathInfo.base}`);
+    fs.writeFileSync(saveLocation, source);
+  }
+  else {
+    const saveLocation = path.join(__dirname, exportedFolder, pathInfo.dir);
+    try {
+      if (!fs.existsSync(saveLocation)) {
+        fs.mkdirSync(saveLocation);
+      }
     }
+    catch (error) { /** ignore */ }
+
+    const saveFile = path.join(__dirname, exportedFolder, pathInfo.dir, pathInfo.base);
     fs.writeFileSync(saveFile, source);
   }
 
