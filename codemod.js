@@ -253,7 +253,7 @@ module.exports = (fileInfo, { jscodeshift: j }, options) => {
   }
 
   if (!pathInfo.dir) {
-    const saveLocation = path.join(__dirname, exportedFolder, `${pathInfo.base}`);
+    const saveLocation = path.join(__dirname, exportedFolder, pathInfo.base);
     fs.writeFileSync(saveLocation, source);
   }
   else {
