@@ -4,28 +4,37 @@ const fs = require('fs');
 // switch to lazy call
 
 // const x = require('y');
-const functionLazyReplacementGeneral = (name='', module='') => {
+const functionLazyReplacementGeneral = (name='', module='', listProps=[]) => {
   let func = `function get_${name}() {\n`;
-  func += `  return ${name} || (${name} = require('${module}'));\n}`
+  func += `  return ${name} ||\n    (${name} = require('${module}'));\n}`
+  listProps[listProps.length - 1].callee = `get_${name}()`;
   return func;
 };
 
 // const { x, y } = require('z');
-const functionLazyReplacementExtraction = (listVars=[], module='') => {
+const functionLazyReplacementExtraction = (listVars=[], module='', listProps=[]) => {
   let replacement = '';
+  let name = listVars.join('_');
+
+  replacement += `const ${name} = {};\n`;
+  replacement += `function get_${name}() {\n`;
   for (let i = 0; i < listVars.length; ++i) {
-    replacement += `let ${listVars[i]};\n\n`;
-    replacement += `function get_${listVars[i]}() {\n`;
-    replacement += `  return ${listVars[i]} || (${listVars[i]} = require('${module}'));\n}\n\n`
+    replacement += `  if (!${name}['${listVars[i]}']) {\n    ${name}['${listVars[i]}'] = require('${module}').${listVars[i]};\n  }\n`;
+  }
+  replacement += `  return ${name};\n}`;
+
+  for (let i = listProps.length - 1; i >= listProps.length - listVars.length; --i) {
+    listProps[i].callee = `get_${name}()['${listProps[i].name}']`;
   }
 
   return replacement;
 };
 
 // const x = require('y').z;
-const functionLazyReplacementCallExpression = (name='', module='', propCalled='') => {
+const functionLazyReplacementCallExpression = (name='', module='', propCalled='', listProps=[]) => {
   let replacement = `function get_${name}() {\n`;
-  replacement += `  return ${name} || (${name} = require('${module}').${propCalled});\n}`;
+  replacement += `  return ${name} ||\n    (${name} = require('${module}').${propCalled});\n}`;
+  listProps[listProps.length - 1].callee = `get_${name}()`;
   return replacement;
 };
 
@@ -52,8 +61,10 @@ const detectModuleCalledGeneral = (source='', j, listPropsCalled=[], structure={
     const name = node.declarations[0].id.name;
 
     if (!module.includes('let')) {
-      listPropsCalled.push(name);
-      nodePath.insertAfter(functionLazyReplacementGeneral(name, module));
+      listPropsCalled.push({
+        name
+      });
+      nodePath.insertAfter(functionLazyReplacementGeneral(name, module, listPropsCalled));
     }
     node.declarations[0].init = null;
 
@@ -73,11 +84,13 @@ const detectModuleCalledExtraction = (source='', j, listPropsCalled=[], structur
     const props = [];
     node.declarations[0].id.properties.forEach(prop => {
       props.push(prop.value.name);
-      listPropsCalled.push(prop.value.name);
+      listPropsCalled.push({
+        name: prop.value.name
+      });
     });
 
     if (!module.includes('let')) {
-      nodePath.insertAfter(functionLazyReplacementExtraction(props, module));
+      nodePath.insertAfter(functionLazyReplacementExtraction(props, module, listPropsCalled));
     }
 
     return node;
@@ -100,8 +113,10 @@ const detectModuleCalledExpression = (source='', j, listPropsCalled=[], structur
     const propCalled = node.declarations[0].init.property.name;
 
     if (!module.includes('let')) {
-      listPropsCalled.push(name);
-      nodePath.insertAfter(functionLazyReplacementCallExpression(name, module, propCalled));
+      listPropsCalled.push({
+        name
+      });
+      nodePath.insertAfter(functionLazyReplacementCallExpression(name, module, propCalled, listPropsCalled));
     }
 
     node.declarations[0].init = null;
@@ -114,7 +129,7 @@ const detectModuleCalledExpression = (source='', j, listPropsCalled=[], structur
 // change to lazy function called
 const changeToLazyFunctionCalled = (source='', j, listPropsCalled=[]) => {
   listPropsCalled.forEach(prop => {
-    source = source.replace(`${prop}.`, `get_${prop}().`);
+    source = source.replace(`${prop.name}.`, `${prop.callee}.`);
 
     source = j(source)
     .find(j.ExpressionStatement, {
@@ -123,14 +138,14 @@ const changeToLazyFunctionCalled = (source='', j, listPropsCalled=[]) => {
         type: 'CallExpression',
         callee: {
           type: 'Identifier',
-          name: prop
+          name: prop.name
         }
       }
     })
     .replaceWith(nodePath => {
       const { node } = nodePath;
 
-      node.expression.callee.name = `get_${prop}()`;
+      node.expression.callee.name = prop.callee;
 
       return node;
     })
@@ -145,7 +160,7 @@ const changeToLazyFunctionCalled = (source='', j, listPropsCalled=[]) => {
           type: 'CallExpression',
           callee: {
             type: 'Identifier',
-            name: prop
+            name: prop.name
           }
         }
       }
@@ -153,7 +168,7 @@ const changeToLazyFunctionCalled = (source='', j, listPropsCalled=[]) => {
     .replaceWith(nodePath => {
       const { node } = nodePath;
 
-      node.expression.object.callee.name = `get_${prop}()`;
+      node.expression.object.callee.name = prop.callee;
 
       return node;
     })
@@ -164,13 +179,13 @@ const changeToLazyFunctionCalled = (source='', j, listPropsCalled=[]) => {
       type: 'ClassDeclaration',
       superClass: {
         type: 'Identifier',
-        name: prop
+        name: prop.name
       }
     })
     .replaceWith(nodePath => {
       const { node } = nodePath;
 
-      node.superClass.name = `get_${prop}()`;
+      node.superClass.name = prop.callee;
 
       return node;
     })

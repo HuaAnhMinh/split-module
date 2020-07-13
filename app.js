@@ -15,6 +15,8 @@ d().g;
 
 a.f;
 
+b().s;
+
 class Test extends x {
   constructor(props) {
 
