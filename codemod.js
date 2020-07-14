@@ -190,6 +190,49 @@ const changeToLazyFunctionCalled = (source='', j, listPropsCalled=[]) => {
       return node;
     })
     .toSource();
+
+    source = j(source)
+    .find(j.VariableDeclaration, {
+      type: 'VariableDeclaration',
+      declarations: [{
+        type: 'VariableDeclarator',
+        init: {
+          type: 'Identifier',
+          name: prop.name
+        }
+      }]
+    })
+    .replaceWith(nodePath => {
+      const { node } = nodePath;
+
+      node.declarations[0].init.name = prop.callee;
+
+      return node;
+    })
+    .toSource();
+
+    source = j(source)
+    .find(j.VariableDeclaration, {
+      type: 'VariableDeclaration',
+      declarations: [{
+        type: 'VariableDeclarator',
+        init: {
+          type: 'MemberExpression',
+          object: {
+            type: 'Identifier',
+            name: prop.name
+          }
+        }
+      }]
+    })
+    .replaceWith(nodePath => {
+      const { node } = nodePath;
+
+      node.declarations[0].init.object.name = prop.callee;
+
+      return node;
+    })
+    .toSource();
   });
 
   return source;
