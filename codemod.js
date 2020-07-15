@@ -239,6 +239,8 @@ const changeToLazyFunctionCalled = (source='', j, listPropsCalled=[]) => {
 };
 
 module.exports = (fileInfo, { jscodeshift: j }, options) => {
+  console.log(options);
+
   const listPropsCalled = [];
 
   let source = detectModuleCalledGeneral(fileInfo.source, j, listPropsCalled, {
@@ -320,14 +322,16 @@ module.exports = (fileInfo, { jscodeshift: j }, options) => {
       subFolders = pathInfo.dir.split('/');
     }
     let subPath = path.join(__dirname, exportedFolder);
-    subFolders.forEach(subFolder => {
-      try {
-        subPath = path.join(subPath, subFolder);
-        if (!fs.existsSync(subPath)) {
-          fs.mkdirSync(subPath);
+    subFolders.forEach((subFolder, index) => {
+      if (index !== 0) {
+        try {
+          subPath = path.join(subPath, subFolder);
+          if (!fs.existsSync(subPath)) {
+            fs.mkdirSync(subPath);
+          }
         }
+        catch (error) { /** ignored */ }
       }
-      catch (error) { /** ignored */ }
     });
 
     const saveFile = path.join(subPath, pathInfo.base);

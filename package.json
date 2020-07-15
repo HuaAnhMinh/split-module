@@ -2,7 +2,7 @@
   "name": "split-module",
   "main": "app.js",
   "scripts": {
-    "start": "jscodeshift -t codemod.js app.js -d"
+    "start": "jscodeshift -t codemod.js ./input -d"
   },
   "devDependencies": {
     "jscodeshift": "^0.10.0"
