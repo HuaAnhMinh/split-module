@@ -28,3 +28,5 @@ path.join('a', 'a', 'c');
 const test = x;
 
 const test2 = x.z;
+
+export.methodInSnap

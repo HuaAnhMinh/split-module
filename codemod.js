@@ -1,5 +1,8 @@
 const path = require('path');
 const fs = require('fs');
+const extractionStructure = require('./structures/extraction-requirement');
+const generalStructure = require('./structures/general-requirement');
+const expressionStructure = require('./structures/expression-requirement');
 
 // switch to lazy call
 
@@ -243,62 +246,31 @@ module.exports = (fileInfo, { jscodeshift: j }, options) => {
 
   const listPropsCalled = [];
 
-  let source = detectModuleCalledGeneral(fileInfo.source, j, listPropsCalled, {
-    type: 'VariableDeclaration',
-    kind: 'const',
-    declarations: [{
-      type: 'VariableDeclarator',
-      id: {
-        type: 'Identifier'
-      },
-      init: {
-        type: 'CallExpression',
-        callee: {
-          type: 'Identifier',
-          name: 'require'
-        }
-      }
-    }]
-  });
+  let types = ['general', 'extraction', 'expression'];
+  if (options.types) {
+    types = options.types.split(',');
+  }
 
-  source = detectModuleCalledExtraction(source, j, listPropsCalled, {
-    type: 'VariableDeclaration',
-    kind: 'const',
-    declarations: [{
-      type: 'VariableDeclarator',
-      id: {
-        type: 'ObjectPattern'
-      },
-      init: {
-        type: 'CallExpression',
-        callee: {
-          type: 'Identifier',
-          name: 'require'
-        }
-      }
-    }]
-  });
+  let source;
+  console.log(types)
 
-  source = detectModuleCalledExpression(source, j, listPropsCalled, {
-    type: 'VariableDeclaration',
-    kind: 'const',
-    declarations: [{
-      type: 'VariableDeclarator',
-      id: {
-        type: 'Identifier'
-      },
-      init: {
-        type: 'MemberExpression',
-        object: {
-          type: 'CallExpression',
-          callee: {
-            type: 'Identifier',
-            name: 'require'
-          }
-        }
-      }
-    }]
-  });
+  for (let i = 0; i < types.length; ++i) {
+    const type = types[i];
+
+    switch (type) {
+      case 'general':
+        source = detectModuleCalledGeneral(fileInfo.source, j, listPropsCalled, generalStructure);
+        break;
+      case 'extraction':
+        source = detectModuleCalledExtraction(source, j, listPropsCalled, extractionStructure);
+        break;
+      case 'expression':
+        source = detectModuleCalledExpression(source, j, listPropsCalled, expressionStructure);
+        break;
+      default:
+        console.log('type not found');
+    }
+  }
 
   source = changeToLazyFunctionCalled(source, j, listPropsCalled);
 
